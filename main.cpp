@@ -1,5 +1,6 @@
 #include <cfloat>
 #include <cmath>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -15,7 +16,7 @@ struct Point {
 
     double euclidean_distance(const Point &p) {
         if (values.size() != p.values.size()) {
-            throw "Point size mismatch";
+            throw std::logic_error("Point size mismatch");
         }
 
         double value = 0;
@@ -28,7 +29,7 @@ struct Point {
 
     static double euclidean_distance(const Point &p1, const Point &p2) {
         if (p1.values.size() != p2.values.size()) {
-            throw "Point size mismatch";
+            throw std::logic_error("Point size mismatch");
         }
 
         double value = 0;
@@ -40,14 +41,12 @@ struct Point {
     }
 
     void zero() {
-        for (auto d : values) {
-            d = 0;
-        }
+        std::fill(values.begin(), values.end(), 0);
     }
 
-    Point operator+(const Point &p) {
+    Point operator+(const Point &p) const {
         if (values.size() != p.values.size()) {
-            throw "Point size mismatch";
+            throw std::logic_error("Point size mismatch");
         }
 
         Point point(values.size());
@@ -59,38 +58,34 @@ struct Point {
         return point;
     }
 
-    Point operator+=(const Point &p) {
+    Point &operator+=(const Point &p) {
         if (values.size() != p.values.size()) {
-            throw "Point size mismatch";
+            throw std::logic_error("Point size mismatch");
         }
-
-        Point point(values.size());
 
         for (int i = 0; i < values.size(); ++i) {
-            point.values[i] = values[i] + p.values[i];
+            values[i] += p.values[i];
         }
 
-        return point;
+        return *this;
     }
 
     Point operator/(double divider) const {
-        Point point(this->values.size());
+        Point point(values.size());
 
         for (int i = 0; i < values.size(); ++i) {
-            point.values[i] /= divider;
+            point.values[i] = values[i] / divider;
         }
 
         return point;
     }
 
-    Point operator/=(double divider) const {
-        Point point(this->values.size());
-
-        for (int i = 0; i < values.size(); ++i) {
-            point.values[i] /= divider;
+    Point &operator/=(double divider) {
+        for (double &value : values) {
+            value /= divider;
         }
 
-        return point;
+        return *this;
     }
 };
 
@@ -107,11 +102,10 @@ struct Data {
 
     void k_means_clustering(int epochs, int n_clusters) {
 
-
         for (int i = 0; i < n_clusters; i++) {
             Cluster cluster;
 
-            Point random_point = samples.at(rand() % samples.size());
+            Point random_point = samples[rand() % samples.size()];
             cluster.values = random_point.values;
 
             clusters.push_back(cluster);
@@ -135,7 +129,6 @@ struct Data {
 
                 min_cluster->samples.push_back(s);
             }
-
 
             for (auto &c : clusters) {
                 c.zero();
@@ -167,16 +160,19 @@ struct Data {
         return min_cluster;
     }
 
-    void read_csv(const std::string &file_path) {
+    bool read_csv(const std::string &file_path) {
         std::string line;
 
         std::ifstream file(file_path);
 
+        if (!file.is_open()) {
+            return false;
+        }
 
         while (getline(file, line)) {
             char delimiter = ',';
 
-            size_t start = 0, end = 0;
+            size_t start, end = 0;
             std::string token;
 
             Sample sample;
@@ -190,6 +186,8 @@ struct Data {
 
             samples.push_back(sample);
         }
+
+        return true;
     }
 
     void print() {
@@ -211,17 +209,25 @@ int main() {
 
     for (int i = 0; i < 100; ++i) {
         Data data, truth_data;
-        data.read_csv("../breast_data.csv");
-        truth_data.read_csv("../breast_truth.csv");
 
-        data.k_means_clustering(10000, 2);
+        if (!data.read_csv("breast_data.csv")) {
+            std::cout << "breast_data.csv must be in the same folder as the executable file\n";
+            return 1;
+        }
+
+        if (!truth_data.read_csv("breast_truth.csv")) {
+            std::cout << "breast_truth.csv must be in the same folder as the executable file\n";
+            return 1;
+        }
+
+        data.k_means_clustering(100, 2);
 
         int valid = 0;
-        for (int i = 0; i < data.samples.size(); i++) {
+        for (int j = 0; j < data.samples.size(); j++) {
 
-            int prediction = data.predict(data.samples[i]);
+            int prediction = data.predict(data.samples[j]);
 
-            if (prediction == truth_data.samples[i].values[0]) {
+            if (prediction == truth_data.samples[j].values[0]) {
                 valid++;
             }
         }
@@ -229,6 +235,9 @@ int main() {
         std::cout << (double) valid / data.samples.size() << std::endl;
     }
 
+    std::cout << "Press Enter to finish" << std::endl;
+
+    getchar();
 
     return 0;
 }
