@@ -102,6 +102,7 @@ struct Data {
 
     void k_means_clustering(int epochs, int n_clusters) {
 
+        // First, create random cluster centers.
         for (int i = 0; i < n_clusters; i++) {
             Cluster cluster;
 
@@ -111,8 +112,10 @@ struct Data {
             clusters.push_back(cluster);
         }
 
+        // Main loop of the algorithm
         for (int i = 0; i < epochs; ++i) {
 
+            // Split sample into nearest clusters.
             for (const auto &s : samples) {
 
                 auto min_dist = DBL_MAX;
@@ -130,6 +133,7 @@ struct Data {
                 min_cluster->samples.push_back(s);
             }
 
+            // Recalculate cluster centers
             for (auto &c : clusters) {
                 c.zero();
 
@@ -206,34 +210,37 @@ int main() {
 
     srand(time(nullptr));
 
+    Data data, truth_data;
 
-    for (int i = 0; i < 100; ++i) {
-        Data data, truth_data;
-
-        if (!data.read_csv("breast_data.csv")) {
-            std::cout << "breast_data.csv must be in the same folder as the executable file\n";
-            return 1;
-        }
-
-        if (!truth_data.read_csv("breast_truth.csv")) {
-            std::cout << "breast_truth.csv must be in the same folder as the executable file\n";
-            return 1;
-        }
-
-        data.k_means_clustering(100, 2);
-
-        int valid = 0;
-        for (int j = 0; j < data.samples.size(); j++) {
-
-            int prediction = data.predict(data.samples[j]);
-
-            if (prediction == truth_data.samples[j].values[0]) {
-                valid++;
-            }
-        }
-
-        std::cout << (double) valid / data.samples.size() << std::endl;
+    if (!data.read_csv("breast_data.csv")) {
+        std::cout << "breast_data.csv must be in the same folder as the executable file\n";
+        return 1;
     }
+
+    if (!truth_data.read_csv("breast_truth.csv")) {
+        std::cout << "breast_truth.csv must be in the same folder as the executable file\n";
+        return 1;
+    }
+
+    data.k_means_clustering(100, 2);
+
+    int valid = 0;
+    for (int j = 0; j < data.samples.size(); j++) {
+
+        int prediction = data.predict(data.samples[j]);
+
+        if (prediction == truth_data.samples[j].values[0]) {
+            valid++;
+        }
+    }
+
+    std::cout << "Since the K Means algorithm is unsupervised, the result may be completely "
+                 "opposite to what was expected. \nIn this case, the result must be "
+                 "subtracted from 100. \nOr, run the algorithm (program) several times until the "
+                 "desired result is obtained. \nSpecifically for these data, the result is 0.85413 or 0.14587, "
+                 "depending on the random initial arrangement of the clusters.\n";
+
+    std::cout << "Result: " << (double) valid / data.samples.size() << std::endl;
 
     std::cout << "Press Enter to finish" << std::endl;
 
